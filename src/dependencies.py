@@ -26,20 +26,9 @@ class TokenHelperInjector:
         self.algorithm = algorithm
         self.access_token_expires_minutes = access_token_expire_minutes
 
-    def __call__(self, secret_key: str, algorithm: str, access_token_expire_minutes: int) -> TokenHelper:
+    def __call__(self) -> TokenHelper:
         """
         Calls the TokenHelperInjector instance.
-
-        Parameters
-        ----------
-        secret_key: str
-            The secret key to sign tokens with.
-        
-        algorithm: str
-            The algorithm to encrypt tokens with.
-
-        access_token_expire_minutes: int
-            The time in minutes for the token to expire.
 
         Returns
         -------
@@ -47,7 +36,7 @@ class TokenHelperInjector:
             The token helper instance.
         """
 
-        return TokenHelper(secret_key, algorithm, access_token_expire_minutes)
+        return TokenHelper(self.secret_key, self.algorithm, self.access_token_expire_minutes)
 
 
 class DbServiceInjector:
@@ -67,14 +56,9 @@ class DbServiceInjector:
 
         self.dbService = db_service
 
-    def __call__(self, db_service) -> DbService:
+    def __call__(self) -> DbService:
         """
         Calls the DbServiceInjector instance.
-
-        Parameters
-        ----------
-        db_service: DbService
-            The database service to inject.
 
         Returns
         -------
@@ -82,5 +66,5 @@ class DbServiceInjector:
             The db service instance.
         """
 
-        db_service.connect()
-        return db_service
+        self.db_service.connect()
+        return self.db_service
