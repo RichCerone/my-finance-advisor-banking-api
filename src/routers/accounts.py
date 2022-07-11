@@ -73,9 +73,7 @@ def get(id: str = "",
             raise HTTPException(404, "No accounts found based on search parameters.")
 
     except Exception as e:
-        return ""
-
-    return ""
+        raise HTTPException(500)
 
 
 def __validate_get_accounts_param(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int):

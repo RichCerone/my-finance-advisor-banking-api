@@ -36,7 +36,7 @@ class TokenHelperInjector:
             The token helper instance.
         """
 
-        return TokenHelper(self.secret_key, self.algorithm, self.access_token_expire_minutes)
+        return TokenHelper(self.secret_key, self.algorithm, self.access_token_expires_minutes)
 
 
 class DbServiceInjector:
@@ -54,7 +54,7 @@ class DbServiceInjector:
             The database service to inject.
         """
 
-        self.dbService = db_service
+        self.db_service = db_service
 
     def __call__(self) -> DbService:
         """
