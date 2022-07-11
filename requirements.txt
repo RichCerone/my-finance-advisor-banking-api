@@ -1,0 +1,5 @@
+azure-cosmos
+fastapi[all] == 0.78.0
+python-dotenv
+python-jose[cryptography]
+pytest
