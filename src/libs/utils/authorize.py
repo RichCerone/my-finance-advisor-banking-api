@@ -39,6 +39,12 @@ def authorize_access(request: Request, token_helper: TokenHelper = Depends(token
 
     Parameters
     ----------
+    token_helper: TokenHelper
+        Helps validates the token.
+
+    users_db: DbService
+        Manages users in the database.
+
     request: Request
         The incoming HTTP request.
 
