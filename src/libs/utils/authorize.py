@@ -24,10 +24,10 @@ USERS_CONTAINER_ID = settings.users_container_id
 ORIGIN_LIST = settings.origins.split(",")
 
 users_db_options = DbOptions(
-        settings.endpoint, 
-        settings.key,
-        settings.database_id,
-        settings.users_container_id
+        ENDPOINT, 
+        KEY,
+        DATABASE_ID,
+        USERS_CONTAINER_ID
     )
 
 users_db = DbServiceInjector(DbService(users_db_options))

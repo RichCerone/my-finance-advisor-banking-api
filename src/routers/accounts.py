@@ -1,3 +1,4 @@
+import json
 import logging as logger
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -7,6 +8,8 @@ from src.db_service.Query import Query
 from src.dependencies import DbServiceInjector
 from src.exceptions.InvalidParameterError import InvalidParameterError
 from src.exceptions.NoResultsFoundError import NoResultsFoundError
+from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models
+from src.libs.api_model_mappers.api_result_mapper import map_to_api_result
 from src.libs.utils.authorize import authorize_access
 from src.authorization.JwtBearer import inject_jwt_bearer
 from src.documentation.docs import *
@@ -32,10 +35,10 @@ MAX_PAGE_SIZE = settings.max_page_size
 ORIGIN_LIST = settings.origins.split(",")
 
 db_options = DbOptions(
-    settings.endpoint, 
-    settings.key,
-    settings.database_id,
-    settings.users_container_id
+    ENDPOINT, 
+    KEY,
+    DATABASE_ID,
+    ACCOUNTS_CONTAINER_ID
 )
 
 accounts_db = DbServiceInjector(DbService(db_options))
@@ -67,15 +70,18 @@ def get(id: str = "",
 
         query = __build_get_query(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page)
 
-        logger.debug("Query build '{0}'".format(query.queryStr))
+        logger.debug("Query built: '{0}'".format(query.queryStr))
         logger.info("Querying accounts by 'id': '{0}', 'account_id': '{1}', 'accountName': '{2}', 'account_type': '{3}', 'account_institution': '{4}', balance: '{5}', 'page': '{6}', 'results_per_page': '{7}'"
         .format(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page))
 
-        results = accounts_db.query(query)
+        results = json.loads(accounts_db.query(query))
 
-        if results != None:
+        accounts = map_to_account_api_models(results)
+        response = map_to_api_result(accounts, accounts.__len__(), page)
+
+        if response != None:
             logger.info("Results found.")
-            return results
+            return response
 
         else:
             raise NoResultsFoundError("No accounts found based on search parameters.")
@@ -146,7 +152,7 @@ def __build_get_query(id: str, account_id: str, account_name: str, account_type:
         return Query(query_str, where_params)
 
     if account_id != "":
-        account_id_param = "{0}.account_id=@id".format(ACCOUNTS_CONTAINER_ID)
+        account_id_param = "{0}.account_id=@account_id".format(ACCOUNTS_CONTAINER_ID)
         params.append(account_id_param)
 
         query_str += "{0} OFFSET {1} LIMIT {2}".format(account_id_param, offset, limit)
