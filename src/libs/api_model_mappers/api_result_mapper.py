@@ -2,10 +2,29 @@ import logging as logger
 
 from src.libs.api_models.ApiResult import ApiResult
 
-def map_to_api_result(content: list, results: int, page: int) -> ApiResult:
-    
+def map_to_api_result(content: any, results: int, page: int) -> ApiResult:
+    """
+    Maps the content to an API result.
+
+    Parameters
+    ----------
+    content: any
+        Object to return from the API.
+
+    results: int
+        Number of results in this API call.
+
+    page: int
+        Page number of current results.
+
+    Raises
+    ----------
+    TypeError
+        Raised if a given parameters is invalid..
+    """
+
     try:
-        if content is None or content.__len__ == 0:
+        if content is None:
             raise ValueError("'content' must be defined and not empty.")
 
         if results is None:
@@ -14,7 +33,7 @@ def map_to_api_result(content: list, results: int, page: int) -> ApiResult:
         if page is None:
             raise TypeError("'page' must be defined.")
 
-        result = ApiResult(content, results, page)
+        result = ApiResult(content=content, results=results, page=page)
         return result
 
     except Exception as e:

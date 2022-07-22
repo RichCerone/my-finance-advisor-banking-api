@@ -50,7 +50,25 @@ def map_to_account_api_model(payload: dict[str, any]) -> AccountModel:
 
 
 def map_to_account_api_models(payload: list[dict[str, any]]) -> list:
-    
+    """
+    Map the account data model to an account API model.
+
+    Parameters
+    ----------
+    payload: list[dict[str, any]]
+        The JSON objects converted from the JSON string.
+
+    Returns
+    -------
+    list
+        The account objects mapped to.
+
+    Raises
+    ------
+    TypeError
+        Raised if the payload passed is None.
+    """
+
     try:
         if payload is None or payload.__len__() == 0:
             raise ValueError("The payload must be defined and not empty.")

@@ -10,6 +10,7 @@ from src.exceptions.InvalidParameterError import InvalidParameterError
 from src.exceptions.NoResultsFoundError import NoResultsFoundError
 from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models
 from src.libs.api_model_mappers.api_result_mapper import map_to_api_result
+from src.libs.api_models.ApiResult import ApiResult
 from src.libs.utils.authorize import authorize_access
 from src.authorization.JwtBearer import inject_jwt_bearer
 from src.documentation.docs import *
@@ -43,7 +44,7 @@ db_options = DbOptions(
 
 accounts_db = DbServiceInjector(DbService(db_options))
 
-@router.get("/", status_code=200, responses=get_accounts_responses, tags=["accounts"])
+@router.get("/", status_code=200, responses=get_accounts_responses, response_model=ApiResult, tags=["accounts"])
 def get(id: str = "",
     account_id: str = "",
     account_name: str = "",
@@ -55,7 +56,7 @@ def get(id: str = "",
     accounts_db: DbService = Depends(accounts_db), 
     user: str = Depends(authorize_access)):
     """
-    Gets accounts based on search parameters.
+    Gets accounts based on search parameters. Searching by 'id' or 'account_name' will always return one result.
     """
 
     try:
@@ -66,21 +67,46 @@ def get(id: str = "",
         __validate_get_accounts_param(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page)
 
         logger.debug("Parameters are valid.")
-        logger.debug("Building query.")
 
-        query = __build_get_query(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page)
+        queried: bool = False
+        results = None
 
-        logger.debug("Query built: '{0}'".format(query.queryStr))
-        logger.info("Querying accounts by 'id': '{0}', 'account_id': '{1}', 'accountName': '{2}', 'account_type': '{3}', 'account_institution': '{4}', balance: '{5}', 'page': '{6}', 'results_per_page': '{7}'"
-        .format(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page))
+        # Get by key.
+        if id != "":
+            results = accounts_db.get(id, id.split("::")[1])
+            
+        elif account_id != "":
+            results = accounts_db.get("account::{0}".format(account_id), account_id)
+            
+        # Query.
+        else:
+            queried = True
 
-        results = json.loads(accounts_db.query(query))
+            logger.debug("Building query.")
 
-        accounts = map_to_account_api_models(results)
-        response = map_to_api_result(accounts, accounts.__len__(), page)
+            query = __build_get_query(account_name, account_type, account_institution, balance, page, results_per_page)
 
-        if response != None:
-            logger.info("Results found.")
+            logger.debug("Query built: '{0}'".format(query.queryStr))
+            logger.info("Querying accounts by 'accountName': '{0}', 'account_type': '{1}', 'account_institution': '{2}', balance: '{3}', 'page': '{4}', 'results_per_page': '{5}'"
+            .format(account_name, account_type, account_institution, balance, page, results_per_page))
+
+            results = accounts_db.query(query)
+
+        if results != None:
+            if queried:
+                accounts = map_to_account_api_models(json.loads(results))
+                response = map_to_api_result(accounts, accounts.__len__(), page)
+
+                logger.info("{0} results found.".format(accounts.__len__()))
+
+            else:
+                accounts = map_to_account_api_model(json.loads(results))
+                response = map_to_api_result(accounts, 1, page)
+
+                logger.info("1 result found.")
+
+            logger.debug("Results: {0}".format(results))
+
             return response
 
         else:
@@ -103,6 +129,9 @@ def get(id: str = "",
 def __validate_get_accounts_param(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int):
         if id != "" and id.isspace():
              raise InvalidParameterError("id is invalid (did you pass only spaces?).")
+
+        elif id != "" and (id.split("::").__len__() == 0 or id.split("::")[0] != "accounts"):
+            raise InvalidParameterError("id is not a valid format. Accepted format: accounts::[account_id]. You put: '{0}').".format(id))
         
         if account_id != "" and account_id.isspace():
             raise InvalidParameterError("account_id is invalid (did you pass only spaces?).")
@@ -127,7 +156,7 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
 
 
 # Builds a search query.
-def __build_get_query(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int) -> Query:
+def __build_get_query(account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int) -> Query:
     query_str = "SELECT * FROM {0} WHERE ".format(ACCOUNTS_CONTAINER_ID)
     where_params = dict[str, any]()
     params = list()
@@ -141,31 +170,11 @@ def __build_get_query(id: str, account_id: str, account_name: str, account_type:
     else:
         offset = 0
 
-    # id and account_id are 'hard' searches, meaning they will ignore all other passed parameters if present.
-    if id != "":
-        id_param = "{0}.id=@id".format(ACCOUNTS_CONTAINER_ID)
-        params.append(id_param)
-
-        query_str += "{0} OFFSET {1} LIMIT {2}".format(id_param, offset, limit)
-        where_params["@id"] = id
-
-        return Query(query_str, where_params)
-
-    if account_id != "":
-        account_id_param = "{0}.account_id=@account_id".format(ACCOUNTS_CONTAINER_ID)
-        params.append(account_id_param)
-
-        query_str += "{0} OFFSET {1} LIMIT {2}".format(account_id_param, offset, limit)
-        where_params["@account_id"] = account_id
-
-        return Query(query_str, where_params)
-
-    # All parameters below are 'soft' searches; they can be combined together to form one query.
     if account_name != "":
-        account_name_param = "{0}.account_name LIKE '%@account_name%'".format(ACCOUNTS_CONTAINER_ID)
+        account_name_param = "{0}.account_name LIKE @account_name".format(ACCOUNTS_CONTAINER_ID)
         params.append(account_name_param)
 
-        where_params["@account_name"] = account_name
+        where_params["@account_name"] = "%" + account_name + "%"
 
     if account_type != "":
         account_type_param = "{0}.account_type=@account_type".format(ACCOUNTS_CONTAINER_ID)
