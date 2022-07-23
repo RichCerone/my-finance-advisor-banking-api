@@ -101,8 +101,19 @@ def test_get_returns_400():
     assert response.status_code == 400
 
 
+# Asserts a 403 status code is returned.
+def test_get_returns_403():
+    app.dependency_overrides = {}
+
+    response = client.get("/accounts?account_name={0}".format("some_account_name"))
+
+    assert response.status_code == 403
+    
+
 # Asserts a 404 status code is returned.
 def test_get_returns_404():
+    app.dependency_overrides[authorize_access] = init_authorize_access_returns_user
+    app.dependency_overrides[inject_jwt_bearer] = init_inject_jwt_bearer_authenticates
     app.dependency_overrides[accounts_db] = init_accounts_db_gets_user_returns_none
 
     response = client.get("/accounts?id={0}".format("account::1234"))
