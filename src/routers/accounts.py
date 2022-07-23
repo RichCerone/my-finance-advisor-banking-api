@@ -44,6 +44,9 @@ db_options = DbOptions(
 
 accounts_db = DbServiceInjector(DbService(db_options))
 
+"""
+GET Account(s)
+"""
 @router.get("/", status_code=200, responses=get_accounts_responses, response_model=ApiResult, tags=["accounts"])
 def get(id: str = "",
     account_id: str = "",
@@ -68,7 +71,7 @@ def get(id: str = "",
 
         logger.debug("Parameters are valid.")
 
-        queried: bool = False
+        queried = False
         results = None
 
         # Get by key.
@@ -125,13 +128,16 @@ def get(id: str = "",
             raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
+"""
+Private Methods
+"""
 # Validates parameters for the GET operation.
 def __validate_get_accounts_param(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int):
         if id != "" and id.isspace():
              raise InvalidParameterError("id is invalid (did you pass only spaces?).")
 
-        elif id != "" and (id.split("::").__len__() == 0 or id.split("::")[0] != "accounts"):
-            raise InvalidParameterError("id is not a valid format. Accepted format: accounts::[account_id]. You put: '{0}').".format(id))
+        elif id != "" and (id.split("::").__len__() == 0 or id.split("::")[0] != "account"):
+            raise InvalidParameterError("id is not a valid format. Accepted format: account::[account_id]. You put: '{0}').".format(id))
         
         if account_id != "" and account_id.isspace():
             raise InvalidParameterError("account_id is invalid (did you pass only spaces?).")
@@ -203,8 +209,6 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
             query_str += "{0} AND ".format(params[i])
 
     query_str += " OFFSET {0} LIMIT {1}".format(offset, limit)
-
-    print(query_str)
 
     return Query(query_str, where_params)
 

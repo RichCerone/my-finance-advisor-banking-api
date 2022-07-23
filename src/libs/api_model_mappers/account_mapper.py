@@ -71,7 +71,7 @@ def map_to_account_api_models(payload: list[dict[str, any]]) -> list:
 
     try:
         if payload is None or payload.__len__() == 0:
-            raise ValueError("The payload must be defined and not empty.")
+            raise TypeError("The payload must be defined and not empty.")
 
         accounts = list()
         for obj in payload:

@@ -24,16 +24,30 @@ def map_to_api_result(content: any, results: int, page: int) -> ApiResult:
     """
 
     try:
+        logger.debug("Validating 'content' parameter.")
+
         if content is None:
             raise ValueError("'content' must be defined and not empty.")
+
+        logger.debug("'content' is valid.")
+        logger.debug("Validating 'results' parameter.")
 
         if results is None:
             raise TypeError("'results' must be defined.")
 
+        logger.debug("'results' parameter valid.")
+        logger.debug("Validating 'page' parameter.")
+
         if page is None:
             raise TypeError("'page' must be defined.")
 
+        logger.debug("'page' parameter valid.")
+        logger.debug("Creating API result")
+
         result = ApiResult(content=content, results=results, page=page)
+
+        logger.debug("API results created.")
+
         return result
 
     except Exception as e:
