@@ -5,14 +5,14 @@ class Query:
     Specifies how to query the database
     """
 
-    def __init__(self, queryStr: str, whereParams: dict[str, any]=None, enableCrossPartitionQuery=True):
+    def __init__(self, query_str: str, where_params: dict[str, any]=None, enable_cross_partition_query=True):
         """
         Parameters
         ----------
-        queryStr: str
+        query_str: str
             The query string to execute.
 
-        whereParams: dict[str, any]
+        where_params: dict[str, any]
             The parameters to insert into the query. 'None' by default.
             Example:
                 whereParams = {
@@ -20,20 +20,20 @@ class Query:
                     "@name": John
                 }
 
-        enableCrossPartitionQuery: bool
+        enable_cross_partition_query: bool
             Should be 'True' if the container is partitioned. 'True' by default.
         
         Raises
         ------
         ValueError
-            Raised if the queryStr is not defined.
+            Raised if the query_str is not defined.
         """
-        if queryStr is None or queryStr.isspace():
-            raise ValueError("'queryStr' must be defined.")
+        if query_str is None or query_str.isspace():
+            raise ValueError("'query_str' must be defined.")
 
-        self.queryStr = queryStr
-        self.whereParams = whereParams
-        self.enableCrossPartitionQuery = enableCrossPartitionQuery
+        self.query_str = query_str
+        self.where_params = where_params
+        self.enable_cross_partition_query = enable_cross_partition_query
 
 
     def build_where_params(self) -> list[dict[str, object]]:
@@ -45,12 +45,12 @@ class Query:
         list[dict[str, object]]
             The parameter objects for the database API to consume.
         """
-        if self.whereParams is None or len(self.whereParams) == 0:
+        if self.where_params is None or len(self.where_params) == 0:
             return None
         
         paramList = list[dict[str, object]]()
-        for k in self.whereParams:
-            paramList.append({ "name": k, "value": self.whereParams[k] })
+        for k in self.where_params:
+            paramList.append({ "name": k, "value": self.where_params[k] })
 
         return paramList
 
@@ -58,7 +58,7 @@ class Query:
     def __str__(self) -> str:
         formattedWhereParams = "Not defined."
 
-        if self.whereParams is not None and len(self.whereParams) > 0:
-            formattedWhereParams = json.dumps(self.whereParams)
+        if self.where_params is not None and len(self.where_params) > 0:
+            formattedWhereParams = json.dumps(self.where_params)
 
-        return "'queryStr': '{0}' | 'whereParams': '{1}' | 'enableCrossPartitionQuery': {2}".format(self.queryStr, formattedWhereParams, self.enableCrossPartitionQuery)
+        return "'query_str': '{0}' | 'whereParams': '{1}' | 'enableCrossPartitionQuery': {2}".format(self.query_str, formattedWhereParams, self.enable_cross_partition_query)

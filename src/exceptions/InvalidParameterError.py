@@ -12,5 +12,5 @@ class InvalidParameterError(Exception):
             Message to include in the exception.
         """
 
-        self.message = message,
+        self.message = message
         super().__init__(self, message)

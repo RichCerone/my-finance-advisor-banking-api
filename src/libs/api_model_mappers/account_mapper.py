@@ -1,6 +1,7 @@
 import logging as logger
 
 from src.libs.api_models.AccountModel import AccountModel
+from src.data_models.Account import Account
 
 def map_to_account_api_model(payload: dict[str, any]) -> AccountModel:
     """
@@ -48,6 +49,45 @@ def map_to_account_api_model(payload: dict[str, any]) -> AccountModel:
         logger.exception("map_to_account_api_model exception -> Error mapping account data: {0}".format(e))
         raise
 
+def map_to_account_data_model(account: AccountModel) -> Account:
+    """
+    Maps an account API model to an account data model for database storage.
+
+    Parameters
+    ----------
+    account: AccountModel
+        The account API model to map to the account data model.
+
+
+    Returns
+    -------
+    Account:
+        The account data model mapped from the account API model.
+
+    Raises
+    ------
+    TypeError:
+        Raised if the account API model is 'None'.
+    """
+    
+    try:
+        logger.debug("Checking if account API model is valid.")
+
+        if account == None:
+            raise TypeError("The account API model must be defined.")
+
+        logger.debug("Account API model is valid.")
+        logger.debug("Converting account API model to an account data model.")
+
+        account_data_model = Account(account.account_id, account.account_name, account.account_type, account.account_institution, account.balance)
+
+        logger.debug("Account data model mapped: {0}".format(account_data_model.__str__()))
+
+        return account_data_model
+
+    except Exception as e:
+        logger.exception("map_to_account_data_model exception -> An error occurred mapping the account data model: {0}".format(e))
+        raise
 
 def map_to_account_api_models(payload: list[dict[str, any]]) -> list:
     """
