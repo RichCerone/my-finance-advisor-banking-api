@@ -1,4 +1,5 @@
 import json
+
 from fastapi.testclient import TestClient
 from src.libs.api_models.AccountModel import AccountModel
 from src.main import app
@@ -21,28 +22,28 @@ def init_authorize_access_returns_user():
     return authorize_access_mock
 
 
-def init_accounts_db_gets_user():
+def init_accounts_db_gets_account():
     accounts_db_mock = Mock()
     accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
 
     return accounts_db_mock
 
 
-def init_accounts_db_gets_user_returns_none():
+def init_accounts_db_gets_account_returns_none():
     accounts_db_mock = Mock()
     accounts_db_mock.get.return_value = None
 
     return accounts_db_mock
 
 
-def init_accounts_db_gets_users_raises_exception():
+def init_accounts_db_gets_account_raises_exception():
     accounts_db_mock = Mock()
     accounts_db_mock.get.side_effect = Exception()
 
     return accounts_db_mock
 
 
-def init_accounts_db_queries_users():
+def init_accounts_db_queries_accounts():
     accounts_db_mock = Mock()
 
     accounts = list()
@@ -61,7 +62,7 @@ client = TestClient(app)
 # Asserts a 200 status code is returned.
 def test_get_account_returns_200():
     app.dependency_overrides[authorize_access] = init_authorize_access_returns_user
-    app.dependency_overrides[accounts_db] = init_accounts_db_gets_user
+    app.dependency_overrides[accounts_db] = init_accounts_db_gets_account
     app.dependency_overrides[inject_jwt_bearer] = init_inject_jwt_bearer_authenticates
 
     # Test get by key.
@@ -76,7 +77,7 @@ def test_get_account_returns_200():
     assert account.account_id == "1234"
 
     # Test get by query.
-    app.dependency_overrides[accounts_db] = init_accounts_db_queries_users
+    app.dependency_overrides[accounts_db] = init_accounts_db_queries_accounts
 
     response = client.get("/accounts?account_name={0}".format("some_account_name"))
 
@@ -86,7 +87,7 @@ def test_get_account_returns_200():
     accounts = content["content"]
 
     assert type(accounts) == list
-    assert accounts.__len__() == 2
+    assert len(accounts) == 2
     
     account = AccountModel(**accounts[0])
 
@@ -114,7 +115,7 @@ def test_get_returns_403():
 def test_get_returns_404():
     app.dependency_overrides[authorize_access] = init_authorize_access_returns_user
     app.dependency_overrides[inject_jwt_bearer] = init_inject_jwt_bearer_authenticates
-    app.dependency_overrides[accounts_db] = init_accounts_db_gets_user_returns_none
+    app.dependency_overrides[accounts_db] = init_accounts_db_gets_account_returns_none
 
     response = client.get("/accounts?id={0}".format("account::1234"))
 
@@ -123,7 +124,7 @@ def test_get_returns_404():
 
 # Asserts a 500 status code is returned.
 def test_get_returns_500():
-    app.dependency_overrides[accounts_db] = init_accounts_db_gets_users_raises_exception
+    app.dependency_overrides[accounts_db] = init_accounts_db_gets_account_raises_exception
 
     response = client.get("/accounts?id={0}".format("account::1234"))
 

@@ -102,7 +102,7 @@ def get(id: str = "",
 
             query = __build_get_query(account_name, account_type, account_institution, balance, page, results_per_page)
 
-            logger.debug("Query built: '{0}'".format(query.queryStr))
+            logger.debug("Query built: '{0}'".format(query.query_str))
             logger.info("Querying accounts by 'accountName': '{0}', 'account_type': '{1}', 'account_institution': '{2}', balance: '{3}', 'page': '{4}', 'results_per_page': '{5}'"
             .format(account_name, account_type, account_institution, balance, page, results_per_page))
 
@@ -111,9 +111,9 @@ def get(id: str = "",
         if results != None:
             if queried:
                 accounts = map_to_account_api_models(json.loads(results))
-                response = map_to_api_result(accounts, accounts.__len__(), page)
+                response = map_to_api_result(accounts, len(accounts), page)
 
-                logger.info("{0} results found.".format(accounts.__len__()))
+                logger.info("{0} results found.".format(len(accounts)))
 
             else:
                 accounts = map_to_account_api_model(json.loads(results))
@@ -164,16 +164,16 @@ def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), 
         if accounts_db.get(account_data_model.id, account_data_model.account_id) != None:
             raise ObjectConflictError("Account '{0}' already exists.".format(account_data_model.account_id))
         
-        # Create.
+        # Create account.
         logger.debug("Account '{0}' does not exist.".format(account_data_model.account_id))
         logger.info("Creating account.")
 
-        result = accounts_db.upsert(account_data_model.__dict__)
+        accounts_db.upsert(account_data_model.__dict__)
         
         logger.info("Account '{0}' created.".format(account_data_model.account_id))
         logger.debug("User {0} created account: {1}".format(user, str(account_data_model)))
 
-        return map_to_api_result(json.loads(result), 1, 0)
+        return map_to_api_result(account_data_model, 1, 0)
 
     except Exception as e:
         if e.__class__ == InvalidParameterError:
@@ -193,7 +193,7 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
         if id != "" and id.isspace():
              raise InvalidParameterError("id is invalid (did you pass only spaces?).")
 
-        elif id != "" and (id.split("::").__len__() == 0 or id.split("::")[0] != "account"):
+        elif id != "" and (len(id.split("::")) == 0 or id.split("::")[0] != "account"):
             raise InvalidParameterError("id is not a valid format. Accepted format: account::[account_id]. You put: '{0}').".format(id))
         
         if account_id != "" and account_id.isspace():
@@ -258,8 +258,8 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
         where_params["@balance"] = str(balance)
 
     # Build query with gathered parameters.
-    for i in range(params.__len__()):
-        if (i == params.__len__() - 1):
+    for i in range(len(params)):
+        if (i == len(params) - 1):
             query_str += params[i]
 
         else:
