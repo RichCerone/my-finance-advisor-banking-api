@@ -369,8 +369,11 @@ def __validate_update_account(account: UpdateAccountModel):
     if account.account_name != None and (not account.account_name or account.account_name.isspace()):
         raise InvalidParameterError("account_name cannot be empty.")
 
+    if account.balance != None and (not account.balance or account.balance.isspace()):
+        raise InvalidParameterError("balance cannot be empty.")
+
     if account.balance != None:
-        __validate_balance(account.balance)
+        __validate_balance(Decimal(account.balance))
 
 
 # Validate the balance is in a decimal format and has exactly 2 decimal places.
