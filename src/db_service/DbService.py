@@ -27,14 +27,14 @@ class DbService():
         Upserts an item in the database collection.
     """
 
-    def __init__(self, dbOptions: DbOptions):
+    def __init__(self, db_options: DbOptions):
         """        
         Parameters
         ----------
-        dbOptions: DbOptions
+        db_options: DbOptions
             Options for configuring the database service.
         """
-        self.dbOptions = dbOptions
+        self.db_options = db_options
         self.client = None
         self.db = None
         self.container = None
@@ -63,9 +63,9 @@ class DbService():
 
         try: # Open database connection.
             logger.info("Opening connection to database.")
-            logger.debug("endpoint: {0}, key: {1}".format(self.dbOptions.endpoint, self.dbOptions.key))
+            logger.debug("endpoint: {0}, key: {1}".format(self.db_options.endpoint, self.db_options.key))
 
-            self.client = CosmosClient(self.dbOptions.endpoint, self.dbOptions.key)
+            self.client = CosmosClient(self.db_options.endpoint, self.db_options.key)
 
             logger.info("Database connection opened.")
 
@@ -74,9 +74,9 @@ class DbService():
             raise
         
         try: # Get database.
-            logger.info("Getting database {0}.".format(self.dbOptions.databaseId))
+            logger.info("Getting database {0}.".format(self.db_options.database_id))
 
-            self.db = self.client.get_database_client(self.dbOptions.databaseId)
+            self.db = self.client.get_database_client(self.db_options.database_id)
 
             logger.info("Database retrieved.")
         
@@ -85,9 +85,9 @@ class DbService():
             raise
         
         try: # Get container.
-            logger.info("Getting container {0}.".format(self.dbOptions.containerId))
+            logger.info("Getting container {0}.".format(self.db_options.container_id))
 
-            self.container = self.db.get_container_client(self.dbOptions.containerId)
+            self.container = self.db.get_container_client(self.db_options.container_id)
 
             logger.info("Container retrieved.")
         
@@ -195,18 +195,18 @@ class DbService():
             params = query.build_where_params()
 
             logger.debug("Where params built: {0}".format(json.dumps(params)))
-            logger.info("Querying database with: {0}".format(query.__str__()))
+            logger.info("Querying database with: {0}".format(str(query)))
 
             if params is None:
                 result = list(self.container.query_items(
-                    query.queryStr,
-                    enable_cross_partition_query=query.enableCrossPartitionQuery))
+                    query.query_str,
+                    enable_cross_partition_query=query.enable_cross_partition_query))
 
             else:
                 result = list(self.container.query_items(
-                    query.queryStr,
+                    query.query_str,
                     parameters=params,
-                    enable_cross_partition_query=query.enableCrossPartitionQuery))
+                    enable_cross_partition_query=query.enable_cross_partition_query))
 
             if result is not None and len(result) > 0:
                 j = json.dumps(result)
@@ -216,7 +216,7 @@ class DbService():
                 return j
 
             else:
-                logger.warning("No results found for given query: {0}".format(query.__str__()))
+                logger.warning("No results found for given query: {0}".format(str(query)))
                 return None
 
         except Exception as e:
@@ -335,19 +335,19 @@ class DbService():
 
     # Validates the db options.
     def __validate_db_options(self) -> None:
-        if self.dbOptions is None:
-            raise TypeError("dbOptions cannot be 'None'.")
+        if self.db_options is None:
+            raise TypeError("db_options cannot be 'None'.")
         
-        if not self.dbOptions.endpoint or self.dbOptions.endpoint.isspace():
+        if not self.db_options.endpoint or self.db_options.endpoint.isspace():
             raise ValueError("The endpoint must be defined.")
         
-        elif not self.dbOptions.key or self.dbOptions.key.isspace():
+        elif not self.db_options.key or self.db_options.key.isspace():
             raise ValueError("The key must be defined.")
 
-        elif not self.dbOptions.databaseId or self.dbOptions.databaseId.isspace():
+        elif not self.db_options.database_id or self.db_options.database_id.isspace():
             raise ValueError("The database id must be defined.")
 
-        elif not self.dbOptions.containerId or self.dbOptions.containerId.isspace():
+        elif not self.db_options.container_id or self.db_options.container_id.isspace():
             raise ValueError("The container id must be defined.")
 
 

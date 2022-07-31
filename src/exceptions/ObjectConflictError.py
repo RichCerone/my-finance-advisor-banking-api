@@ -1,7 +1,7 @@
 
-class NoResultsFoundError(Exception):
+class ObjectConflictError(Exception):
     """
-    No results were found.
+    Object already exists.
     """
 
     def __init__(self, message: str = None):

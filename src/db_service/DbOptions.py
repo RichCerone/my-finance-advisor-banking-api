@@ -3,7 +3,7 @@ class DbOptions:
     Database options for configuring the DbService.
     """
 
-    def __init__(self, endpoint: str, key: str, databaseId: str, containerId: str):
+    def __init__(self, endpoint: str, key: str, database_id: str, container_id: str):
         """
         Parameters
         ----------
@@ -13,14 +13,14 @@ class DbOptions:
         key : str
             The key for accessing the database.
         
-        databaseId : str
+        database_id : str
             The id of the database connecting to.
 
-        containerId : str
+        container_id : str
             The id of the container connecting to.
         """
 
         self.endpoint = endpoint
         self.key = key
-        self.databaseId = databaseId
-        self.containerId = containerId
+        self.database_id = database_id
+        self.container_id = container_id

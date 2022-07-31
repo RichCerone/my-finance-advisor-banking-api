@@ -8,14 +8,18 @@ from src.db_service.Query import Query
 from src.dependencies import DbServiceInjector
 from src.exceptions.InvalidParameterError import InvalidParameterError
 from src.exceptions.NoResultsFoundError import NoResultsFoundError
-from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models
+from src.exceptions.ObjectConflictError import ObjectConflictError
+from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models, map_to_account_data_model
 from src.libs.api_model_mappers.api_result_mapper import map_to_api_result
+from src.data_models.Account import Account
+from src.libs.api_models.AccountModel import AccountModel
 from src.libs.api_models.ApiResult import ApiResult
 from src.libs.utils.authorize import authorize_access
 from src.authorization.JwtBearer import inject_jwt_bearer
 from src.documentation.docs import *
 from src.config import Settings
 
+# Define router.
 router = APIRouter(
     prefix="/accounts",
     dependencies=[
@@ -23,8 +27,11 @@ router = APIRouter(
     ]
 )
 
+# Services setup.
+# Get settings from .env.
 settings = Settings()
 
+# Assign settings to constants.
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
@@ -35,6 +42,7 @@ ACCOUNTS_CONTAINER_ID = settings.accounts_container_id
 MAX_PAGE_SIZE = settings.max_page_size
 ORIGIN_LIST = settings.origins.split(",")
 
+# Setup DB settings to inject.
 db_options = DbOptions(
     ENDPOINT, 
     KEY,
@@ -42,8 +50,12 @@ db_options = DbOptions(
     ACCOUNTS_CONTAINER_ID
 )
 
+# Inject db.
 accounts_db = DbServiceInjector(DbService(db_options))
 
+# End of services setup.
+
+# Start of router program.
 """
 GET Account(s)
 """
@@ -79,9 +91,10 @@ def get(id: str = "",
             results = accounts_db.get(id, id.split("::")[1])
             
         elif account_id != "":
-            results = accounts_db.get("account::{0}".format(account_id), account_id)
+            key = Account(account_id).create_id(account_id)
+            results = accounts_db.get(key, account_id)
             
-        # Query.
+        # If no key defined--query.
         else:
             queried = True
 
@@ -89,7 +102,7 @@ def get(id: str = "",
 
             query = __build_get_query(account_name, account_type, account_institution, balance, page, results_per_page)
 
-            logger.debug("Query built: '{0}'".format(query.queryStr))
+            logger.debug("Query built: '{0}'".format(query.query_str))
             logger.info("Querying accounts by 'accountName': '{0}', 'account_type': '{1}', 'account_institution': '{2}', balance: '{3}', 'page': '{4}', 'results_per_page': '{5}'"
             .format(account_name, account_type, account_institution, balance, page, results_per_page))
 
@@ -98,9 +111,9 @@ def get(id: str = "",
         if results != None:
             if queried:
                 accounts = map_to_account_api_models(json.loads(results))
-                response = map_to_api_result(accounts, accounts.__len__(), page)
+                response = map_to_api_result(accounts, len(accounts), page)
 
-                logger.info("{0} results found.".format(accounts.__len__()))
+                logger.info("{0} results found.".format(len(accounts)))
 
             else:
                 accounts = map_to_account_api_model(json.loads(results))
@@ -129,6 +142,50 @@ def get(id: str = "",
 
 
 """
+POST Account
+"""
+@router.post("/", status_code=201, responses=post_accounts_responses, response_model=ApiResult, tags=["accounts"])
+def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), user: str = Depends(authorize_access)):
+    """
+    Creates a new account.
+    """
+
+    try:
+        logger.debug("User {0} creating account.".format(user))
+        logger.debug("Validating account model.")
+
+        __validate_account(account)
+
+        logger.debug("Account model is valid.")
+        logger.debug("Checking if account '{0}' already exists.".format(account.account_id))
+
+        # Check if account already exists.
+        account_data_model = map_to_account_data_model(account)
+        if accounts_db.get(account_data_model.id, account_data_model.account_id) != None:
+            raise ObjectConflictError("Account '{0}' already exists.".format(account_data_model.account_id))
+        
+        # Create account.
+        logger.debug("Account '{0}' does not exist.".format(account_data_model.account_id))
+        logger.info("Creating account.")
+
+        accounts_db.upsert(account_data_model.__dict__)
+        
+        logger.info("Account '{0}' created.".format(account_data_model.account_id))
+        logger.debug("User {0} created account: {1}".format(user, str(account_data_model)))
+
+        return map_to_api_result(account_data_model, 1, 0)
+
+    except Exception as e:
+        if e.__class__ == InvalidParameterError:
+            raise HTTPException(status_code=400, detail=e.message)
+
+        elif e.__class__ == ObjectConflictError:
+            raise HTTPException(status_code=409, detail=e.message)
+
+        else:
+            raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
+"""
 Private Methods
 """
 # Validates parameters for the GET operation.
@@ -136,7 +193,7 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
         if id != "" and id.isspace():
              raise InvalidParameterError("id is invalid (did you pass only spaces?).")
 
-        elif id != "" and (id.split("::").__len__() == 0 or id.split("::")[0] != "account"):
+        elif id != "" and (len(id.split("::")) == 0 or id.split("::")[0] != "account"):
             raise InvalidParameterError("id is not a valid format. Accepted format: account::[account_id]. You put: '{0}').".format(id))
         
         if account_id != "" and account_id.isspace():
@@ -198,11 +255,11 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
         balance_param = "{0}.balance=@balance".format(ACCOUNTS_CONTAINER_ID)
         params.append(balance_param)
 
-        where_params["@balance"] = balance.__str__()
+        where_params["@balance"] = str(balance)
 
-    # Build query with gather parameters.
-    for i in range(params.__len__()):
-        if (i == params.__len__() - 1):
+    # Build query with gathered parameters.
+    for i in range(len(params)):
+        if (i == len(params) - 1):
             query_str += params[i]
 
         else:
@@ -212,3 +269,28 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
 
     return Query(query_str, where_params)
 
+# Validates the account is valid.
+def __validate_account(account: AccountModel):
+    if account == None:
+        raise InvalidParameterError("The account must be defined.")
+
+    if not account.account_id or account.account_id.isspace():
+        raise InvalidParameterError("account_id must be defined.")
+
+    if not account.account_name or account.account_name.isspace():
+        raise InvalidParameterError("account_name must be defined.")
+
+    if not account.account_type or account.account_type.isspace():
+        raise InvalidParameterError("account_type must be defined.")
+
+    if not account.account_institution or account.account_institution.isspace():
+        raise InvalidParameterError("account_institution must be defined.")
+
+    if not account.balance or account.balance.isspace():
+        raise InvalidParameterError("balance must be defined.")
+
+    if "." not in account.balance:
+        raise InvalidParameterError("balance must be a decimal. You put '{0}'".format(account.balance))
+
+    if Decimal(account.balance).as_tuple().exponent != -2:
+        raise InvalidParameterError("balance must have 2 decimal places. You put '{0}'".format(account.balance))
