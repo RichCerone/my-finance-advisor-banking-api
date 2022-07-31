@@ -4,7 +4,8 @@ __all__ = [
     "version",
     "tags_metadata",
     "get_accounts_responses",
-    "post_accounts_responses"
+    "post_account_responses",
+    "put_account_responses"
 ]
 
 app_title = "My Finance Advisor Banking API"
@@ -57,7 +58,7 @@ get_accounts_responses = {
     }
 }
 
-post_accounts_responses = {
+post_account_responses = {
     400: {
         "description": "Parameters are invalid.",
         "content": {
@@ -76,6 +77,41 @@ post_accounts_responses = {
     },
     409: {
         "description": "Account already exists.",
+        "content": {
+            "application/json": {
+                "example": {"status_code": 0, "detail": "string"}
+            }
+        }
+    },
+    500: {
+        "description": "Error occurred getting accounts or unexpected error.",
+        "content": {
+            "application/json": {
+                "example": {"status_code": 0, "detail": "string"}
+            }
+        }
+    }
+}
+
+put_account_responses = {
+    400: {
+        "description": "Parameters are invalid.",
+        "content": {
+            "application/json": {
+                "example": {"status_code": 0, "detail": "string"}
+            }
+        }
+    },
+    401: {
+        "description": "Access Denied.",
+        "content": {
+            "application/json": {
+                "example": {"status_code": 0, "detail": "string"}
+            }
+        }
+    },
+    404: {
+        "description": "No account found for account_id given.",
         "content": {
             "application/json": {
                 "example": {"status_code": 0, "detail": "string"}

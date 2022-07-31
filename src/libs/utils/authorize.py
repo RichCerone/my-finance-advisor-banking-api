@@ -6,6 +6,7 @@ by seeing if they actually exists in the database.
 import logging as logger
 
 from fastapi import Depends, HTTPException, Request
+from src.token_helper.TokenHelper import JWTClaimsError, ExpiredSignatureError, JWTError
 from src.data_models.User import User
 from src.dependencies import DbServiceInjector, TokenHelperInjector
 from src.token_helper.TokenHelper import TokenHelper
@@ -78,7 +79,7 @@ def authorize_access(request: Request, token_helper: TokenHelper = Depends(token
 
         if users_db.get(user.id, user.user) is None:
             logger.warning("User '{0}' is not authorized.".format(user_in_token))
-            raise HTTPException(403, "Unauthorized.")
+            raise JWTClaimsError("User '{0}' is not authorized.".format(user_in_token))
 
         logger.info("User '{0}' is authorized access.".format(user_in_token))
 
@@ -86,4 +87,8 @@ def authorize_access(request: Request, token_helper: TokenHelper = Depends(token
 
     except Exception as e:
         logger.exception("authorize_access exception -> An error occurred processing the token: {0}".format(e))
-        raise HTTPException(500, "Authorization token cannot be processed.")
+
+        if type(e) == JWTClaimsError or type(e) == JWTError or type(e) == ExpiredSignatureError:
+             raise HTTPException(403, "Unauthorized.")
+        else:
+            raise HTTPException(500, "Authorization token cannot be processed.")

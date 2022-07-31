@@ -3,6 +3,8 @@ import logging as logger
 
 from fastapi import APIRouter, HTTPException, Depends
 from decimal import Decimal
+
+from requests import put
 from src.db_service.DbService import DbService, DbOptions
 from src.db_service.Query import Query
 from src.dependencies import DbServiceInjector
@@ -12,6 +14,7 @@ from src.exceptions.ObjectConflictError import ObjectConflictError
 from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models, map_to_account_data_model
 from src.libs.api_model_mappers.api_result_mapper import map_to_api_result
 from src.data_models.Account import Account
+from src.libs.api_models.UpdateAccountModel import UpdateAccountModel
 from src.libs.api_models.AccountModel import AccountModel
 from src.libs.api_models.ApiResult import ApiResult
 from src.libs.utils.authorize import authorize_access
@@ -131,10 +134,10 @@ def get(id: str = "",
     except Exception as e:
         logger.exception("GET exception on 'get' -> {0}".format(e))
 
-        if e.__class__ == InvalidParameterError:
+        if type(e) == InvalidParameterError:
             raise HTTPException(status_code=400, detail=e.message)
 
-        elif e.__class__ == NoResultsFoundError:
+        elif type(e) == NoResultsFoundError:
             raise HTTPException(status_code=404, detail="No results found based on search parameters given.")
 
         else:
@@ -144,7 +147,7 @@ def get(id: str = "",
 """
 POST Account
 """
-@router.post("/", status_code=201, responses=post_accounts_responses, response_model=ApiResult, tags=["accounts"])
+@router.post("/", status_code=201, responses=post_account_responses, response_model=ApiResult, tags=["accounts"])
 def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), user: str = Depends(authorize_access)):
     """
     Creates a new account.
@@ -176,14 +179,77 @@ def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), 
         return map_to_api_result(account_data_model, 1, 0)
 
     except Exception as e:
-        if e.__class__ == InvalidParameterError:
+        logger.exception("POST exception on 'post' -> {0}".format(e))
+
+        if type(e) == InvalidParameterError:
             raise HTTPException(status_code=400, detail=e.message)
 
-        elif e.__class__ == ObjectConflictError:
+        elif type(e) == ObjectConflictError:
             raise HTTPException(status_code=409, detail=e.message)
 
         else:
             raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
+
+"""
+PUT Account
+"""
+@router.put("/", status_code=200, responses=put_account_responses, response_model=ApiResult, tags=["accounts"])
+def put(account_to_update: UpdateAccountModel, accounts_db: DbService = Depends(accounts_db), user: str = Depends(authorize_access)):
+    """
+    Updates an account's name and/or balance. You must specify the account_id, but you can omit any other fields you do not want
+    to update. You must specify at least one field besides the account_id.
+    """
+    try:
+        logger.debug("User {0} updating account.".format(user))
+        logger.debug("Validating account data to update.")
+
+        __validate_update_account(account_to_update)
+
+        logger.debug("Account update model is valid.")
+        logger.debug("Getting account '{0}' to update.".format(account_to_update.account_id))
+        
+        key = Account(account_to_update.account_id).create_id(account_to_update.account_id)
+        account_json = accounts_db.get(key, account_to_update.account_id)
+        
+        # Check if account exists.
+        if account_json == None:
+            raise NoResultsFoundError("Could not find an account with id '{0}'".format(account_to_update.account_id))
+
+        logger.debug("Account '{0}' found".format(account_to_update.account_id))
+        logger.info("Updating account.")
+
+        # Update account.
+        account : dict[str, any] = json.loads(account_json)
+        if account_to_update.account_name != None:
+            account["account_name"] = account_to_update.account_name
+
+        if account_to_update.balance != None:
+            account["balance"] = account_to_update.balance
+
+        updated_account_json = accounts_db.upsert(account)
+
+        logger.debug("User {0} updated account: {1}".format(user, updated_account_json))
+
+        updated_account = map_to_account_api_model(account)
+        result = map_to_api_result(updated_account, 1, 0)
+
+        logger.info("Account '{0}' updated.".format(updated_account.account_id))
+
+        return result
+
+    except Exception as e:
+        logger.exception("PUT exception on 'put' -> {0}".format(e))
+
+        if type(e) == InvalidParameterError:
+            raise HTTPException(status_code=400, detail=e.message)
+
+        elif type(e) == NoResultsFoundError:
+            raise HTTPException(status_code=404, detail=e.message)
+
+        else:
+            raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
 
 """
 Private Methods
@@ -208,8 +274,7 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
         if account_institution != "" and account_institution.isspace():
             raise InvalidParameterError("account_institution is invalid (did you pass only spaces?).")
         
-        if balance != None and balance.as_tuple().exponent != -2:
-            raise InvalidParameterError("balance must be defined as a monetary value with exactly 2 decimal places. Example: '1000.00'. You put: '{0}'".format(balance))
+        __validate_balance(balance)
 
         if page <= 0:
             raise InvalidParameterError("page must be greater than 1.")
@@ -269,6 +334,7 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
 
     return Query(query_str, where_params)
 
+
 # Validates the account is valid.
 def __validate_account(account: AccountModel):
     if account == None:
@@ -289,8 +355,31 @@ def __validate_account(account: AccountModel):
     if not account.balance or account.balance.isspace():
         raise InvalidParameterError("balance must be defined.")
 
-    if "." not in account.balance:
-        raise InvalidParameterError("balance must be a decimal. You put '{0}'".format(account.balance))
+    __validate_balance(account.balance)
 
-    if Decimal(account.balance).as_tuple().exponent != -2:
-        raise InvalidParameterError("balance must have 2 decimal places. You put '{0}'".format(account.balance))
+
+# Validates the update account model is valid.
+def __validate_update_account(account: UpdateAccountModel):
+    if account.account_id == None:
+        raise InvalidParameterError("The account_id must be defined.")
+
+    if account.account_name == None and account.balance == None:
+        raise InvalidParameterError("You must specify a property to update: Either 'account_name' and/or 'balance'.")
+
+    if account.account_name != None and (not account.account_name or account.account_name.isspace()):
+        raise InvalidParameterError("account_name cannot be empty.")
+
+    if account.balance != None:
+        __validate_balance(account.balance)
+
+
+# Validate the balance is in a decimal format and has exactly 2 decimal places.
+def __validate_balance(balance: str):
+    if not balance or balance.isspace():
+        raise InvalidParameterError("balance must be defined.")
+
+    if "." not in balance:
+        raise InvalidParameterError("balance must be a decimal. You put '{0}'".format(balance))
+
+    if Decimal(balance).as_tuple().exponent != -2:
+        raise InvalidParameterError("balance must have 2 decimal places. You put '{0}'".format(balance))

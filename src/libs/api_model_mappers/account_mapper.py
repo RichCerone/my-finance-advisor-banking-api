@@ -89,6 +89,7 @@ def map_to_account_data_model(account: AccountModel) -> Account:
         logger.exception("map_to_account_data_model exception -> An error occurred mapping the account data model: {0}".format(e))
         raise
 
+
 def map_to_account_api_models(payload: list[dict[str, any]]) -> list:
     """
     Map the account data model to an account API model.
