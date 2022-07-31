@@ -37,7 +37,7 @@ def init_accounts_db_upserts_account():
     return accounts_db_mock
 
 
-def init_accounts_db_upsert_raises_exception():
+def init_accounts_db_get_raises_exception():
     accounts_db_mock = Mock()
     accounts_db_mock.get.side_effect = Exception()
 
@@ -109,7 +109,7 @@ def test_post_returns_409():
 
 
 def test_post_returns_500():
-    app.dependency_overrides[accounts_db] = init_accounts_db_upsert_raises_exception
+    app.dependency_overrides[accounts_db] = init_accounts_db_get_raises_exception
 
     account = AccountModel()
     account.account_id = "1234"

@@ -4,7 +4,6 @@ import logging as logger
 from fastapi import APIRouter, HTTPException, Depends
 from decimal import Decimal
 
-from requests import put
 from src.db_service.DbService import DbService, DbOptions
 from src.db_service.Query import Query
 from src.dependencies import DbServiceInjector
@@ -274,7 +273,8 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
         if account_institution != "" and account_institution.isspace():
             raise InvalidParameterError("account_institution is invalid (did you pass only spaces?).")
         
-        __validate_balance(balance)
+        if balance != None:
+            __validate_balance(balance)
 
         if page <= 0:
             raise InvalidParameterError("page must be greater than 1.")
@@ -355,7 +355,7 @@ def __validate_account(account: AccountModel):
     if not account.balance or account.balance.isspace():
         raise InvalidParameterError("balance must be defined.")
 
-    __validate_balance(account.balance)
+    __validate_balance(Decimal(account.balance))
 
 
 # Validates the update account model is valid.
@@ -374,12 +374,9 @@ def __validate_update_account(account: UpdateAccountModel):
 
 
 # Validate the balance is in a decimal format and has exactly 2 decimal places.
-def __validate_balance(balance: str):
-    if not balance or balance.isspace():
+def __validate_balance(balance: Decimal):
+    if balance == None:
         raise InvalidParameterError("balance must be defined.")
 
-    if "." not in balance:
-        raise InvalidParameterError("balance must be a decimal. You put '{0}'".format(balance))
-
-    if Decimal(balance).as_tuple().exponent != -2:
-        raise InvalidParameterError("balance must have 2 decimal places. You put '{0}'".format(balance))
+    if balance.as_tuple().exponent != -2:
+        raise InvalidParameterError("balance must be defined as a monetary value with exactly 2 decimal places. Example: '1000.00'. You put: '{0}'".format(balance))
