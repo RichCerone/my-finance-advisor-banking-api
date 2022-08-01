@@ -96,7 +96,7 @@ class DbService():
             raise
 
 
-    def get(self, id: str, partitionKey: str) -> str:
+    def get(self, id: str, partition_key: str) -> str:
         """
         Gets an item from the database.
 
@@ -105,7 +105,7 @@ class DbService():
         id: str
             The unique id of the item being retrieved.
 
-        partitionKey: str
+        partition_key: str
             The partition key used for the database item collection.
 
         Returns
@@ -126,11 +126,11 @@ class DbService():
         """
 
         try:
-            logger.debug("Validating parameter 'id' and 'partitionKey'.")
+            logger.debug("Validating parameter 'id' and 'partition_key'.")
             
-            self.__validate_id_and_partition_key(id, partitionKey)
+            self.__validate_id_and_partition_key(id, partition_key)
             
-            logger.debug("'id' and 'partitionKey' are valid.")
+            logger.debug("'id' and 'partition_key' are valid.")
 
         except ValueError as e:
             logger.exception("get exception -> Parameter invalid: {0}".format(e))
@@ -138,9 +138,9 @@ class DbService():
 
         try:
             logger.info("Getting item by id: {0}".format(id))
-            logger.debug("id: {0}, partitionKey: {1}".format(id, partitionKey))
+            logger.debug("id: {0}, partition_key: {1}".format(id, partition_key))
 
-            response = self.container.read_item(item=id, partition_key=partitionKey)
+            response = self.container.read_item(item=id, partition_key=partition_key)
 
             logger.info("Item retrieved: {0}.".format(response))
             
@@ -150,7 +150,7 @@ class DbService():
             return j
 
         except CosmosHttpResponseError as e:
-            logger.warning("Could not get item by id {0} with partition key {1}.".format(id, partitionKey))
+            logger.warning("Could not get item by id {0} with partition key {1}.".format(id, partition_key))
             return None
 
         except Exception as e:
@@ -277,7 +277,7 @@ class DbService():
             raise
     
     
-    def delete(self, id: str, partitionKey: str) -> None:
+    def delete(self, id: str, partition_key: str) -> None:
         """
         Deletes an item from the database.
 
@@ -286,7 +286,7 @@ class DbService():
          id: str
             The unique id of the item being retrieved.
 
-        partitionKey: str
+        partition_key: str
             The partition key used for the database item collection.
 
         Raises
@@ -302,11 +302,11 @@ class DbService():
         """
         
         try:
-            logger.debug("Validating parameter 'id' and 'partitionKey'.")
+            logger.debug("Validating parameter 'id' and 'partition_key'.")
             
-            self.__validate_id_and_partition_key(id, partitionKey)
+            self.__validate_id_and_partition_key(id, partition_key)
             
-            logger.debug("'id' and 'partitionKey' are valid.")
+            logger.debug("'id' and 'partition_key' are valid.")
 
         except ValueError as e:
             logger.exception("delete exception -> Parameter invalid: {0}".format(e))
@@ -314,9 +314,9 @@ class DbService():
 
         try:
             logger.info("Deleting item by id: '{0}'".format(id))
-            logger.debug("id: {0}, partitionKey: {1}".format(id, partitionKey))
+            logger.debug("id: {0}, partition_key: {1}".format(id, partition_key))
 
-            self.container.delete_item(item=id, partition_key=partitionKey)
+            self.container.delete_item(item=id, partition_key=partition_key)
 
             logger.info("Item with id '{0}' deleted.".format(id))
 
@@ -352,9 +352,9 @@ class DbService():
 
 
     # Validates the id and partition key are valid.
-    def __validate_id_and_partition_key(self, id: str, partitionKey: str) -> None:
+    def __validate_id_and_partition_key(self, id: str, partition_key: str) -> None:
         if not id or id.isspace():
             raise ValueError("id must be defined.")
 
-        elif not partitionKey or partitionKey.isspace():
-            raise ValueError("partitionKey must be defined.")
+        elif not partition_key or partition_key.isspace():
+            raise ValueError("partition_key must be defined.")

@@ -48,17 +48,17 @@ class Query:
         if self.where_params is None or len(self.where_params) == 0:
             return None
         
-        paramList = list[dict[str, object]]()
+        param_list = list[dict[str, object]]()
         for k in self.where_params:
-            paramList.append({ "name": k, "value": self.where_params[k] })
+            param_list.append({ "name": k, "value": self.where_params[k] })
 
-        return paramList
+        return param_list
 
 
     def __str__(self) -> str:
-        formattedWhereParams = "Not defined."
+        formatted_where_params = "Not defined."
 
         if self.where_params is not None and len(self.where_params) > 0:
-            formattedWhereParams = json.dumps(self.where_params)
+            formatted_where_params = json.dumps(self.where_params)
 
-        return "'query_str': '{0}' | 'whereParams': '{1}' | 'enableCrossPartitionQuery': {2}".format(self.query_str, formattedWhereParams, self.enable_cross_partition_query)
+        return "'query_str': '{0}' | 'where_params': '{1}' | 'enable_cross_partition_query': {2}".format(self.query_str, formatted_where_params, self.enable_cross_partition_query)
