@@ -10,17 +10,11 @@ from unittest.mock import Mock
 
 # Setup.
 def init_inject_jwt_bearer_authenticates():
-    inject_jwt_bearer_mock = Mock()
-    inject_jwt_bearer_mock.return_value = "some_token"
-
-    return inject_jwt_bearer_mock
+    return "some_token"
 
 
 def init_authorize_access_returns_user():
-    authorize_access_mock = Mock()
-    authorize_access_mock.return_value = "some_user"
-
-    return authorize_access_mock
+    return "user"
 
 
 def init_accounts_db_get_returns_none():
@@ -32,8 +26,8 @@ def init_accounts_db_get_returns_none():
 
 def init_accounts_db_upserts_account():
     accounts_db_mock = Mock()
-    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
-    accounts_db_mock.upsert.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "2000.00").__dict__)
+    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", "1000.00").__dict__)
+    accounts_db_mock.upsert.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", "2000.00").__dict__)
 
     return accounts_db_mock
 
@@ -49,7 +43,7 @@ client = TestClient(app)
 
 # Test
 # Assert a 200 status code is returned.
-def put_returns_200():
+def test_put_returns_200():
     app.dependency_overrides[authorize_access] = init_authorize_access_returns_user
     app.dependency_overrides[accounts_db] = init_accounts_db_upserts_account
     app.dependency_overrides[inject_jwt_bearer] = init_inject_jwt_bearer_authenticates
@@ -59,7 +53,9 @@ def put_returns_200():
     account_to_update.account_name = "some_account_name"
     account_to_update.balance = "2000.00"
 
-    response = client.put("/accounts/", json=json.loads(account_to_update))
+    payload = json.dumps(account_to_update.__dict__)
+
+    response = client.put("/accounts/", json=json.loads(payload))
 
     assert response.status_code == 200
     
@@ -73,19 +69,21 @@ def put_returns_200():
 
 
 # Asserts a 400 status code is returned.
-def put_returns_400():
+def test_put_returns_400():
     account_to_update = UpdateAccountModel()
     account_to_update.account_id = " "
     account_to_update.account_name = "some_account_name"
     account_to_update.balance = "2000.00"
 
-    response = client.put("/accounts/", json=json.loads(account_to_update))
+    payload = json.dumps(account_to_update.__dict__)
+
+    response = client.put("/accounts/", json=json.loads(payload))
 
     assert response.status_code == 400
 
 
 # Asserts a 404 status code is returned.
-def put_returns_404():
+def test_put_returns_404():
     app.dependency_overrides[accounts_db] = init_accounts_db_get_returns_none
 
     account_to_update = UpdateAccountModel()
@@ -93,20 +91,24 @@ def put_returns_404():
     account_to_update.account_name = "some_account_name"
     account_to_update.balance = "2000.00"
 
-    response = client.put("/accounts/", json=json.loads(account_to_update))
+    payload = json.dumps(account_to_update.__dict__)
+
+    response = client.put("/accounts/", json=json.loads(payload))
 
     assert response.status_code == 404
     
 
 # Asserts a 500 status code is returned.
-def put_returns_500():
+def test_put_returns_500():
     app.dependency_overrides[accounts_db] = init_accounts_db_get_raises_exception
 
     account_to_update = UpdateAccountModel()
     account_to_update.account_id = "1234"
     account_to_update.account_name = "some_account_name"
     account_to_update.balance = "2000.00"
+    
+    payload = json.dumps(account_to_update.__dict__)
 
-    response = client.put("/accounts/", json=json.loads(account_to_update))
+    response = client.put("/accounts/", json=json.loads(payload))
 
     assert response.status_code == 500

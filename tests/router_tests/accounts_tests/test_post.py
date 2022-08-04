@@ -16,15 +16,12 @@ def init_inject_jwt_bearer_authenticates():
 
 
 def init_authorize_access_returns_user():
-    authorize_access_mock = Mock()
-    authorize_access_mock.return_value = "some_user"
-
-    return authorize_access_mock
+    return "some_user"
 
 
 def init_accounts_db_get_returns_account():
     accounts_db_mock = Mock()
-    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
+    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", "1000.00").__dict__)
 
     return accounts_db_mock
 
@@ -32,7 +29,7 @@ def init_accounts_db_get_returns_account():
 def init_accounts_db_upserts_account():
     accounts_db_mock = Mock()
     accounts_db_mock.get.return_value = None
-    accounts_db_mock.upsert.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
+    accounts_db_mock.upsert.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", "1000.00").__dict__)
 
     return accounts_db_mock
 

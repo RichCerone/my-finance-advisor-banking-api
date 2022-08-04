@@ -8,7 +8,7 @@ class Account(Entity):
     Holds the account data.
     """
 
-    def __init__(self, account_id: str, account_name: str = "", account_type: str = "", account_institution: str = "", balance: Decimal = Decimal("0.00")):
+    def __init__(self, account_id: str, account_name: str = "", account_type: str = "", account_institution: str = "", account_owner_id: str = "", balance: Decimal = Decimal("0.00")):
         """
         Creates a new account.
         
@@ -26,6 +26,9 @@ class Account(Entity):
         account_institution: str
             The institution that manages this account.
 
+        account_owner_id: str
+            The owner of this account.
+
         balance: Decimal
             The monetary balance on this account.
 
@@ -40,13 +43,14 @@ class Account(Entity):
 
         super().__init__(_collection_name)
 
-        self.__validate_params(account_id, account_name, account_type, account_institution, balance)
+        self.__validate_params(account_id, account_name, account_type, account_institution, account_owner_id, balance)
 
         self.id = self.create_id(account_id)
         self.account_id = account_id
         self.account_name = account_name
         self.account_type = account_type
         self.account_institution = account_institution
+        self.account_owner_id = account_owner_id
         self.balance = balance
 
 
@@ -55,7 +59,7 @@ class Account(Entity):
             raise ValueError("'account_id' must be defined.")
 
 
-    def __validate_params(self,account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal):
+    def __validate_params(self,account_id: str, account_name: str, account_type: str, account_institution: str, account_owner_id: str, balance: Decimal):
         self.__validate_account_id(account_id)
 
         if (not account_name or account_name.isspace()) and account_name != "":
@@ -67,9 +71,12 @@ class Account(Entity):
         if (not account_institution or account_institution.isspace()) and account_institution != "":
             raise ValueError("'account_institution' must be defined.")
 
+        if (not account_owner_id or account_owner_id.isspace()) and account_owner_id != "":
+            raise ValueError("'account_owner_id' must be defined.")
+
         if balance == None:
             raise TypeError("'balance' must be defined.")
 
 
     def __str__(self) -> str:
-        return "'id': '{0}' | 'account_id': '{1}' | 'account_name': '{2}' | 'account_type': '{3}' | 'account_institution': '{4}' | 'balance': '${5}'".format(self.id, self.account_id, self.account_name, self.account_type, self.account_institution, self.balance)
+        return "'id': '{0}' | 'account_id': '{1}' | 'account_name': '{2}' | 'account_type': '{3}' | 'account_institution': '{4}' | 'account_owner_id': '{5}' | 'balance': '${6}'".format(self.id, self.account_id, self.account_name, self.account_type, self.account_institution, self.account_owner_id, self.balance)

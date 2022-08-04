@@ -9,22 +9,16 @@ from unittest.mock import Mock
 
 # Setup
 def init_inject_jwt_bearer_authenticates():
-    inject_jwt_bearer_mock = Mock()
-    inject_jwt_bearer_mock.return_value = "some_token"
-
-    return inject_jwt_bearer_mock
+    return "some_token"
 
 
 def init_authorize_access_returns_user():
-    authorize_access_mock = Mock()
-    authorize_access_mock.return_value = "some_user"
-
-    return authorize_access_mock
+    return "some_user"
 
 
 def init_accounts_db_gets_account():
     accounts_db_mock = Mock()
-    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
+    accounts_db_mock.get.return_value = json.dumps(Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", "1000.00").__dict__)
 
     return accounts_db_mock
 
@@ -49,7 +43,7 @@ def init_accounts_db_queries_accounts():
     accounts = list()
     
     for i in range(2):
-        accounts.append(Account(i.__str__(), "some_account_name", "some_account_type", "some_bank", "1000.00").__dict__)
+        accounts.append(Account(i.__str__(), "some_account_name", "some_account_type", "some_bank", "some_owner", "1000.00").__dict__)
 
     accounts_db_mock.query.return_value = json.dumps(accounts)
 
