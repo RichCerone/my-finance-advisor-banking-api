@@ -79,7 +79,7 @@ def map_to_account_data_model(account: AccountModel) -> Account:
         logger.debug("Account API model is valid.")
         logger.debug("Converting account API model to an account data model.")
 
-        account_data_model = Account(account.account_id, account.account_name, account.account_type, account.account_institution, account.balance)
+        account_data_model = Account(account.account_id, account.account_name, account.account_type, account.account_institution, "", account.balance)
 
         logger.debug("Account data model mapped: {0}".format(account_data_model.__str__()))
 

@@ -11,7 +11,7 @@ class MapToAccountApiModelsTests(unittest.TestCase):
         payload = list()
 
         for i in range(2):
-            payload.append(Account(str(i), "some_account_name", "some_account_type", "some_bank", Decimal("1000.00")).__dict__)
+            payload.append(Account(str(i), "some_account_name", "some_account_type", "some_bank", "some_owner", Decimal("1000.00")).__dict__)
 
         with self.assertLogs(level="DEBUG"):
             result = map_to_account_api_models(payload)

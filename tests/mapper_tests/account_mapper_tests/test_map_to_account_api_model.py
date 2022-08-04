@@ -8,7 +8,7 @@ from src.libs.api_models.AccountModel import AccountModel
 class MapToAccountApiModelTests(unittest.TestCase):
     # Assert that an account data model maps to an account API model.
     def test_map_to_account_api_model_maps(self):
-        payload = Account("1234", "some_account_name", "some_account_type", "some_bank", Decimal("1000.00")).__dict__
+        payload = Account("1234", "some_account_name", "some_account_type", "some_bank", "some_owner", Decimal("1000.00")).__dict__
         
         with self.assertLogs(level="DEBUG"):
             result = map_to_account_api_model(payload)

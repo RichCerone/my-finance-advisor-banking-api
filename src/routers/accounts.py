@@ -12,6 +12,7 @@ from src.exceptions.NoResultsFoundError import NoResultsFoundError
 from src.exceptions.ObjectConflictError import ObjectConflictError
 from src.libs.api_model_mappers.account_mapper import map_to_account_api_model, map_to_account_api_models, map_to_account_data_model
 from src.libs.api_model_mappers.api_result_mapper import map_to_api_result
+from src.data_models.User import User
 from src.data_models.Account import Account
 from src.libs.api_models.UpdateAccountModel import UpdateAccountModel
 from src.libs.api_models.AccountModel import AccountModel
@@ -67,6 +68,7 @@ def get(id: str = "",
     account_name: str = "",
     account_type: str = "",
     account_institution: str = "",
+    account_owner_id: str = "",
     balance: Decimal = None,
     page: int = 1,
     results_per_page: int = 10,
@@ -77,11 +79,11 @@ def get(id: str = "",
     """
 
     try:
-        logger.debug("User {0} querying accounts by 'id': '{1}', 'account_id': '{2}', 'accountName': '{3}', 'account_type': '{4}', 'account_institution': '{5}', balance: '{6}', 'page': '{7}', 'results_per_page': '{8}'"
-        .format(user, id, account_id, account_name, account_type, account_institution, balance, page, results_per_page))
+        logger.debug("User {0} querying accounts by 'id': '{1}', 'account_id': '{2}', 'accountName': '{3}', 'account_type': '{4}', 'account_institution': '{5}', 'account_owner_id': '{6}', 'balance': '{7}', 'page': '{8}', 'results_per_page': '{9}'"
+        .format(user, id, account_id, account_name, account_type, account_institution, account_owner_id, balance, page, results_per_page))
         logger.debug("Validating parameters passed are valid.")
 
-        __validate_get_accounts_param(id, account_id, account_name, account_type, account_institution, balance, page, results_per_page)
+        __validate_get_accounts_param(id, account_id, account_name, account_type, account_institution, account_owner_id, balance, page, results_per_page)
 
         logger.debug("Parameters are valid.")
 
@@ -102,11 +104,11 @@ def get(id: str = "",
 
             logger.debug("Building query.")
 
-            query = __build_get_query(account_name, account_type, account_institution, balance, page, results_per_page)
+            query = __build_get_query(account_name, account_type, account_institution, account_owner_id, balance, page, results_per_page)
 
             logger.debug("Query built: '{0}'".format(query.query_str))
-            logger.info("Querying accounts by 'accountName': '{0}', 'account_type': '{1}', 'account_institution': '{2}', balance: '{3}', 'page': '{4}', 'results_per_page': '{5}'"
-            .format(account_name, account_type, account_institution, balance, page, results_per_page))
+            logger.info("Querying accounts by 'accountName': '{0}', 'account_type': '{1}', 'account_institution': '{2}', 'account_owner_id': {3}, 'balance': '{4}', 'page': '{5}', 'results_per_page': '{6}'"
+            .format(account_name, account_type, account_institution, account_owner_id, balance, page, results_per_page))
 
             results = accounts_db.query(query)
 
@@ -163,6 +165,7 @@ def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), 
 
         # Check if account already exists.
         account_data_model = map_to_account_data_model(account)
+        account_data_model.account_owner_id = User(user, "_").create_id(user) # Add user in token as account owner.
         if accounts_db.get(account_data_model.id, account_data_model.account_id) != None:
             raise ObjectConflictError("Account '{0}' already exists.".format(account_data_model.account_id))
         
@@ -175,7 +178,9 @@ def post(account: AccountModel,  accounts_db: DbService = Depends(accounts_db), 
         logger.info("Account '{0}' created.".format(account_data_model.account_id))
         logger.debug("User {0} created account: {1}".format(user, str(account_data_model)))
 
-        return map_to_api_result(account_data_model, 1, 0)
+        account = map_to_account_api_model(account_data_model.__dict__)
+
+        return map_to_api_result(account, 1, 0)
 
     except Exception as e:
         logger.exception("POST exception on 'post' -> {0}".format(e))
@@ -254,7 +259,7 @@ def put(account_to_update: UpdateAccountModel, accounts_db: DbService = Depends(
 Private Methods
 """
 # Validates parameters for the GET operation.
-def __validate_get_accounts_param(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int):
+def __validate_get_accounts_param(id: str, account_id: str, account_name: str, account_type: str, account_institution: str, account_owner_id: str, balance: Decimal, page: int, results_per_page: int):
         if id != "" and id.isspace():
              raise InvalidParameterError("id is invalid (did you pass only spaces?).")
 
@@ -272,6 +277,9 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
 
         if account_institution != "" and account_institution.isspace():
             raise InvalidParameterError("account_institution is invalid (did you pass only spaces?).")
+
+        if account_owner_id != "" and account_owner_id.isspace():
+            raise InvalidParameterError("account_owner_id is invalid (did you pass only spaces?).")
         
         if balance != None:
             __validate_balance(balance)
@@ -284,7 +292,7 @@ def __validate_get_accounts_param(id: str, account_id: str, account_name: str, a
 
 
 # Builds a search query.
-def __build_get_query(account_name: str, account_type: str, account_institution: str, balance: Decimal, page: int, results_per_page: int) -> Query:
+def __build_get_query(account_name: str, account_type: str, account_institution: str, account_owner_id: str, balance: Decimal, page: int, results_per_page: int) -> Query:
     query_str = "SELECT * FROM {0} WHERE ".format(ACCOUNTS_CONTAINER_ID)
     where_params = dict[str, any]()
     params = list()
@@ -315,6 +323,12 @@ def __build_get_query(account_name: str, account_type: str, account_institution:
         params.append(account_institution_param)
 
         where_params["@account_institution"] = account_institution
+
+    if account_owner_id != "":
+        account_owner_id_param = "{0}.account_owner_id=@account_owner_id".format(ACCOUNTS_CONTAINER_ID)
+        params.append(account_owner_id_param)
+
+        where_params["@account_owner_id"] = User(account_owner_id, "_").create_id(account_owner_id)
 
     if balance != None:
         balance_param = "{0}.balance=@balance".format(ACCOUNTS_CONTAINER_ID)
@@ -355,12 +369,12 @@ def __validate_account(account: AccountModel):
     if not account.balance or account.balance.isspace():
         raise InvalidParameterError("balance must be defined.")
 
-    __validate_balance(Decimal(account.balance))
+    __validate_balance(account.balance)
 
 
 # Validates the update account model is valid.
 def __validate_update_account(account: UpdateAccountModel):
-    if account.account_id == None:
+    if not account.account_id or account.account_id.isspace():
         raise InvalidParameterError("The account_id must be defined.")
 
     if account.account_name == None and account.balance == None:
@@ -371,15 +385,22 @@ def __validate_update_account(account: UpdateAccountModel):
 
     if account.balance != None and (not account.balance or account.balance.isspace()):
         raise InvalidParameterError("balance cannot be empty.")
-
+    
     if account.balance != None:
-        __validate_balance(Decimal(account.balance))
+        __validate_balance(account.balance)
 
 
 # Validate the balance is in a decimal format and has exactly 2 decimal places.
-def __validate_balance(balance: Decimal):
+def __validate_balance(balance: any):
+    formatError = "balance must be defined as a monetary value with exactly 2 decimal places. Example: '1000.00'. You put: '{0}'".format(str(balance))
+    try:
+        balance = Decimal(balance)
+
+    except:
+        raise InvalidParameterError(formatError)
+        
     if balance == None:
         raise InvalidParameterError("balance must be defined.")
 
     if balance.as_tuple().exponent != -2:
-        raise InvalidParameterError("balance must be defined as a monetary value with exactly 2 decimal places. Example: '1000.00'. You put: '{0}'".format(balance))
+        raise InvalidParameterError(formatError)
