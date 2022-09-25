@@ -1,5 +1,5 @@
 azure-cosmos
-fastapi[all] == 0.78.0
+fastapi[all] == 0.85.0
 python-dotenv
 python-jose[cryptography]
 pytest
