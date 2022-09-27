@@ -14,12 +14,12 @@ class JWTBearer(HTTPBearer):
         credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
         if credentials:
             if not credentials.scheme == "Bearer":
-                raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
+                raise HTTPException(status_code=401, detail="Invalid authentication scheme.")
 
             return credentials.credentials
             
         else:
-            raise HTTPException(status_code=403, detail="Invalid authorization code.")
+            raise HTTPException(status_code=401, detail="Invalid authorization code.")
 
 # This is used when you want to inject the caller as a dependency. This way it can be mocked during testing.
 inject_jwt_bearer = JWTBearer()
