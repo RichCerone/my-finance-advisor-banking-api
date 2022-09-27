@@ -36,7 +36,7 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Build env
+     - name: Build env
       run: |
         touch .env
         echo ORIGINS=${{ secrets.origins }} >> .env
@@ -46,7 +46,9 @@ jobs:
         echo ENDPOINT=${{ secrets.endpoint }} >> .env
         echo KEY=${{ secrets.key }} >> .env
         echo DATABASE_ID=${{ secrets.database_id }} >> .env
-        echo CONTAINER_ID=${{ secrets.container_id }} >> .env
+        echo USERS_CONTAINER_ID=${{ secrets.users_container_id }} >> .env
+        echo ACCOUNTS_CONTAINER_ID=${{ secrets.accounts_container_id }} >> .env
+        echo MAX_PAGE_SIZE=${{ secrets.max_page_size }} >> .env
         cat .env
 
     - name: Test with pytest
