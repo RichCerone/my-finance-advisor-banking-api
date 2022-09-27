@@ -46,16 +46,14 @@ jobs:
         echo ENDPOINT=${{ secrets.endpoint }} >> .env
         echo KEY=${{ secrets.key }} >> .env
         echo DATABASE_ID=${{ secrets.database_id }} >> .env
-        echo USERS_CONTAINER_ID=${{ secrets.users_container_id }} >> .env
-        echo ACCOUNTS_CONTAINER_ID=${{ secrets.accounts_container_id }} >> .env
-        echo MAX_PAGE_SIZE=${{ secrets.max_page_size }} >> .env
+        echo CONTAINER_ID=${{ secrets.container_id }} >> .env
         cat .env
 
     - name: Test with pytest
       run: |
         python -m pytest
 
-   - name: Login via Azure CLI
+    - name: Login via Azure CLI
       if: github.ref == 'refs/heads/main'
       uses: azure/login@v1
       with:
@@ -81,7 +79,7 @@ jobs:
       with:
         resource-group: ${{ secrets.RESOURCE_GROUP }}
         dns-name-label: ${{ secrets.RESOURCE_GROUP }}${{ github.run_number }}
-        image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/mfa-auth-api:${{ github.sha }}
+        image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/mfa-banking-api:${{ github.sha }}
         registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
         registry-username: ${{ secrets.REGISTRY_USERNAME }}
         registry-password: ${{ secrets.REGISTRY_PASSWORD }}
